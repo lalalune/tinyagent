@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../attest" },
+    { "path": "../backup" },
+    { "path": "../core" },
+    { "path": "../crypto" },
+    { "path": "../packrunner" },
+    { "path": "../provider-docker" },
+    { "path": "../provider-dstack" },
+    { "path": "../tc" }
+  ]
+}

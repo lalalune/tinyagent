@@ -1,0 +1,23 @@
+{
+  "name": "@tinyagent/backupd",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tinyagent/backup": "workspace:*",
+    "@tinyagent/core": "workspace:*",
+    "@tinyagent/crypto": "workspace:*"
+  }
+}

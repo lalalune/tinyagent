@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/provider-core" },
+    { "path": "./packages/tc" },
+    { "path": "./packages/crypto" },
+    { "path": "./packages/backup" },
+    { "path": "./packages/provider-docker" },
+    { "path": "./packages/provider-dstack" },
+    { "path": "./packages/attest" },
+    { "path": "./packages/packrunner" },
+    { "path": "./packages/backupd" },
+    { "path": "./packages/cli" }
+  ]
+}

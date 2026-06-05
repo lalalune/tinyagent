@@ -1,0 +1,27 @@
+{
+  "name": "@tinyagent/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "tinyagent": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b && chmod +x dist/index.js",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tinyagent/attest": "workspace:*",
+    "@tinyagent/backup": "workspace:*",
+    "@tinyagent/backupd": "workspace:*",
+    "@tinyagent/core": "workspace:*",
+    "@tinyagent/crypto": "workspace:*",
+    "@tinyagent/packrunner": "workspace:*",
+    "@tinyagent/provider-docker": "workspace:*",
+    "@tinyagent/provider-dstack": "workspace:*",
+    "@tinyagent/tc": "workspace:*",
+    "@tinycloud/node-sdk": "2.1.0"
+  }
+}

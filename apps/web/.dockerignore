@@ -1,0 +1,10 @@
+# Build context hygiene for apps/web/Dockerfile (context = apps/web).
+node_modules
+.next
+out
+.env.local
+.env
+playwright-report
+test-results
+e2e
+*.md
