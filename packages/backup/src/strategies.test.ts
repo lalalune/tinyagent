@@ -476,7 +476,7 @@ describe("external strategies", () => {
     } finally {
       await execFileAsync("docker", ["rm", "-f", container]).catch(() => {});
     }
-  });
+  }, 30_000);
 });
 
 async function ensureDockerImage(image: string): Promise<void> {

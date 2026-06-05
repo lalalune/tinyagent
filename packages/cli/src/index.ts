@@ -1325,7 +1325,7 @@ async function preflightCommand(
     [...phalaCommand, "--help"],
     process.cwd(),
     {
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
     },
   );
   const hasDeploy = help.stdout.includes("deploy");
@@ -1351,7 +1351,7 @@ async function preflightCommand(
   const auth = await runLocalCommand(
     [...phalaCommand, "whoami", "--json"],
     process.cwd(),
-    { timeoutMs: 30_000 },
+    { timeoutMs: 60_000 },
   );
   if (auth.exitCode !== 0) {
     printError(

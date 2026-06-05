@@ -104,6 +104,13 @@ describeLive("TinyAgent live dstack production workflow", () => {
         expect(deployment.attestation?.doc?.composeHash).toBe(
           expectedComposeHash,
         );
+        await writeLiveEvidenceBundle({
+          projectDir,
+          pack,
+          runnerImage,
+          expectedComposeHash,
+          deployment,
+        });
 
         expect(
           await main(["--json", "status", "--project-dir", projectDir]),
@@ -200,3 +207,67 @@ function readLivePackEnv(): string[] {
 async function readExpectedComposeHash(): Promise<string> {
   return (await readFile(join("runner", "app-compose.sha256"), "utf8")).trim();
 }
+
+async function writeLiveEvidenceBundle(input: {
+  projectDir: string;
+  pack: string;
+  runnerImage: string;
+  expectedComposeHash: string;
+  deployment: {
+    attestation?: {
+      ok?: boolean;
+      checks?: { composeHash?: boolean; productionDcap?: boolean };
+      doc?: { composeHash?: string };
+    };
+  };
+}): Promise<void> {
+  const evidenceDir = process.env.TINYAGENT_DSTACK_EVIDENCE_DIR;
+  if (evidenceDir === undefined || evidenceDir.trim().length === 0) return;
+
+  await mkdir(evidenceDir, { recursive: true });
+  const evidence = {
+    generatedAt: new Date().toISOString(),
+    projectDir: input.projectDir,
+    pack: input.pack,
+    runnerImage: input.runnerImage,
+    expectedComposeHash: input.expectedComposeHash,
+    attestation: input.deployment.attestation,
+  };
+  await writeFile(
+    join(evidenceDir, "tinyagent-dstack-live-evidence.json"),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+}
+
+describe("live dstack evidence helpers", () => {
+  it("writes an optional evidence bundle without requiring live credentials", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "tinyagent-dstack-evidence-"));
+    const previous = process.env.TINYAGENT_DSTACK_EVIDENCE_DIR;
+    process.env.TINYAGENT_DSTACK_EVIDENCE_DIR = dir;
+    try {
+      await writeLiveEvidenceBundle({
+        projectDir: "/tmp/project",
+        pack: "codex-cli",
+        runnerImage: "tinyagent-runner:test",
+        expectedComposeHash: "sha256:compose",
+        deployment: {
+          attestation: {
+            ok: true,
+            checks: { composeHash: true, productionDcap: true },
+            doc: { composeHash: "sha256:compose" },
+          },
+        },
+      });
+
+      await expect(
+        readFile(join(dir, "tinyagent-dstack-live-evidence.json"), "utf8"),
+      ).resolves.toContain('"expectedComposeHash": "sha256:compose"');
+    } finally {
+      if (previous === undefined)
+        delete process.env.TINYAGENT_DSTACK_EVIDENCE_DIR;
+      else process.env.TINYAGENT_DSTACK_EVIDENCE_DIR = previous;
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});

@@ -24,7 +24,7 @@ npm run dev
 npm run build
 ```
 
-The console currently expects a live TinyAgent control-plane at `NEXT_PUBLIC_CONTROL_PLANE_URL` and does not include a mock backend.
+The console currently expects a live TinyAgent control-plane at `NEXT_PUBLIC_CONTROL_PLANE_URL` and does not include a mock backend. Standalone `npm run lint` and `npm run build` pass, but root TinyAgent gates intentionally exclude `apps/web` until the current control-plane contract is restored.
 
 ## Verified CLI surface
 
@@ -90,6 +90,7 @@ Optional dstack test inputs:
 - `TINYAGENT_DSTACK_PACK`: pack name, default `codex-cli`.
 - `TINYAGENT_DSTACK_ENV`: comma- or newline-separated `KEY=VALUE` entries passed to `deploy --env`.
 - `TINYAGENT_DSTACK_TUNNEL_PORT`: port name or number to check after attestation for a ported pack.
+- `TINYAGENT_DSTACK_EVIDENCE_DIR`: optional directory for `tinyagent-dstack-live-evidence.json`, containing the expected compose hash and persisted attestation verdict from a successful live run.
 
 Production dstack support remains externally unverified until that live test passes against real Phala Cloud access and the resulting CVM attestation matches the committed runner compose hash.
 

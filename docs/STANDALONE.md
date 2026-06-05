@@ -37,7 +37,7 @@ git filter-repo --path tinyagent/ --path-rename tinyagent/:
 
 ## Deferred Legacy Scope
 
-- Wire `apps/web` to a verified current control-plane and add it to CI once the backend contract is restored.
+- Wire `apps/web` to a verified current control-plane and add it to root CI once the backend contract is restored. Standalone `npm run lint` and `npm run build` currently pass inside `apps/web`.
 - Re-audit the legacy `contracts` and `packages/billing` code before restoring billing flows.
 - Re-audit the legacy `packages/server` control plane before restoring cloud mode.
 - Reconcile legacy `test/e2e` harnesses with the current provider-core conformance tests.

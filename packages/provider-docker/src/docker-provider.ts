@@ -209,10 +209,6 @@ export class DockerProvider implements ComputeProvider {
     try {
       const target = await this.resolveForwardTarget(sandbox, remotePort);
 
-      // Local TCP proxy: accept connections on localPort and pipe each one
-      // bidirectionally to the container service. This is a real, active
-      // forward — bytes written to the local port reach the container, and
-      // responses flow back.
       const sockets = new Set<ReturnType<typeof createConnection>>();
       const server = createServer((local) => {
         sockets.add(local);
@@ -247,7 +243,6 @@ export class DockerProvider implements ComputeProvider {
 
       await new Promise<void>((resolve, reject) => {
         server.once("error", reject);
-        // localPort 0 lets the OS pick an ephemeral free port.
         server.listen({ host: "127.0.0.1", port: localPort }, () => {
           server.removeListener("error", reject);
           resolve();
@@ -277,11 +272,6 @@ export class DockerProvider implements ComputeProvider {
     }
   }
 
-  /**
-   * Resolve where the local proxy should connect to reach `remotePort` inside
-   * the container. Prefers a published host port binding (reachable on
-   * 127.0.0.1); falls back to the container's bridge-network IP address.
-   */
   private async resolveForwardTarget(
     sandbox: Sandbox,
     remotePort: number,

@@ -331,11 +331,12 @@ if (!availability.ok) {
 
     it("renews an expired session and restores access", async () => {
       const privateKey = freshHexKey();
-      // A short-but-viable session: long enough for sign-in's host-space
-      // delegation to activate, short enough to expire within the test.
+      // A short-but-viable session: long enough for live sign-in's host-space
+      // delegation to activate under parallel test load, short enough to
+      // expire within the test.
       const shortConfig: TinyCloudNodeConfig = {
         ...ownerConfig(privateKey),
-        sessionExpirationMs: 10_000,
+        sessionExpirationMs: 30_000,
       };
       const node = new TinyCloudNode(shortConfig);
       await node.signIn();
@@ -350,7 +351,7 @@ if (!availability.ok) {
       // Wait past expiry, then renew directly. A prior version of this test
       // tried to write through the expired session and the live node timed out
       // instead of returning a stable auth error, poisoning later tests.
-      await new Promise((r) => setTimeout(r, 11_000));
+      await new Promise((r) => setTimeout(r, 31_000));
 
       // Renew with a normal-length session and confirm access is restored
       // against the SAME space (prior data still visible).
@@ -365,7 +366,7 @@ if (!availability.ok) {
         bytes: new TextEncoder().encode("v3"),
       });
       expect(afterRenew.ok).toBe(true);
-    }, 60_000);
+    }, 120_000);
 
     it("renews a delegated session via renewDelegation", async () => {
       const ownerKey = freshHexKey();

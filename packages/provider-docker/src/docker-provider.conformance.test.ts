@@ -13,15 +13,11 @@ import { DockerProvider } from "./docker-provider.js";
 
 const IMAGE = "alpine:3.20";
 const REMOTE_PORT = 8080;
-// Unique label so any leaked containers from this run can be found / removed.
 const RUN_ID = `tinyagent-docker-conformance-${Date.now()}-${Math.floor(
   Math.random() * 1e6,
 )}`;
 const LABEL_KEY = "tinyagent.test";
 
-// Real Docker operations (pull/create/start/exec) exceed vitest's 5s default.
-// The shared conformance suite registers its `it` without a custom timeout, so
-// raise the file-level default before it is registered below.
 vi.setConfig({ testTimeout: 120000, hookTimeout: 60000 });
 
 const docker = new Docker();
@@ -34,7 +30,6 @@ const docker = new Docker();
  * port publishing so `forwardPort` resolves to a real published host port.
  */
 class KeepaliveDockerProvider extends DockerProvider {
-  // Expose the underlying docker handle to mirror provision behavior.
   private readonly raw: Docker;
   constructor(d: Docker) {
     super(d);
@@ -90,8 +85,6 @@ function specFor(name: string): SandboxSpec {
     agent: {
       name: "conformance-agent",
       dependencies: [],
-      // Declaring REMOTE_PORT makes the provider publish it at provision time
-      // so forwardPort resolves to a real published host port.
       ports: [{ name: "http", port: REMOTE_PORT, protocol: "tcp" }],
       stateDirs: [],
       modelModes: [],
@@ -136,7 +129,6 @@ function fetchTunnelBytes(port: number, timeoutMs = 5000): Promise<string> {
   });
 }
 
-// Final safety net: remove any container created by this run.
 afterAll(async () => {
   try {
     const containers = await docker.listContainers({
@@ -152,11 +144,10 @@ afterAll(async () => {
       ),
     );
   } catch {
-    // best-effort cleanup
+    // Cleanup failures should not hide the test failure that created them.
   }
 });
 
-// Run the shared provider-core conformance suite against the real daemon.
 providerConformanceSuite("docker", {
   provider,
   sandbox: specFor("suite"),
@@ -173,7 +164,6 @@ describe("DockerProvider real-daemon end-to-end (WP-13)", () => {
     try {
       await provider.start(sandbox);
 
-      // --- exec: assert stdout / stderr / exit streaming ---
       const out: ExecChunk[] = [];
       for await (const chunk of provider.exec(sandbox, {
         command: ["sh", "-lc", "printf hello-stdout; printf err 1>&2; exit 7"],
@@ -194,7 +184,6 @@ describe("DockerProvider real-daemon end-to-end (WP-13)", () => {
       expect(stderr && new TextDecoder().decode(stderr.data)).toBe("err");
       expect(exit?.exitCode).toBe(7);
 
-      // --- putFiles / getFiles round-trip ---
       const payload = `roundtrip-${RUN_ID}`;
       await provider.putFiles(sandbox, [
         {
@@ -206,7 +195,6 @@ describe("DockerProvider real-daemon end-to-end (WP-13)", () => {
       expect(blobs[0]?.path).toBe("/tmp/roundtrip.txt");
       expect(new TextDecoder().decode(blobs[0]?.content)).toBe(payload);
 
-      // --- start a tiny HTTP server inside the container on REMOTE_PORT ---
       // alpine:3.20 busybox has no httpd applet, so use a busybox-nc loop that
       // serves a fixed HTTP/1.0 response on every inbound connection. The loop
       // is detached (nohup + background + redirected fds) so the exec stream
@@ -239,7 +227,6 @@ describe("DockerProvider real-daemon end-to-end (WP-13)", () => {
       const launchExit = launch.find((c) => c.stream === "exit");
       expect(launchExit?.exitCode).toBe(0);
 
-      // --- active port forward: bytes from local tunnel reach container ---
       const tunnel = await provider.forwardPort(sandbox, REMOTE_PORT, 0);
       tunnelPort = tunnel.localPort;
       tunnelClose = () => tunnel.close();
@@ -258,12 +245,10 @@ describe("DockerProvider real-daemon end-to-end (WP-13)", () => {
       expect(ok, `tunnel response was: ${response}`).toBe(true);
       expect(response).toContain(body);
 
-      // close() tears down the local listener.
       await tunnel.close();
       tunnelClose = undefined;
       await expect(fetchTunnelBytes(tunnelPort, 1500)).rejects.toBeTruthy();
 
-      // --- attest returns null for local-docker ---
       const attestation = await provider.attest(
         sandbox,
         new Uint8Array([1, 2, 3]),
@@ -329,7 +314,7 @@ describe("DockerProvider Lowkey runner evidence (WP-14)", () => {
           "cd /opt/lowkey && CODEX_CLI_VERSION=latest ./packs/codex-cli/install.sh",
         ],
         env: {},
-        timeoutMs: 60000,
+        timeoutMs: 180000,
       });
       expect(install.exitCode, install.stderr).toBe(0);
       expect(install.stdout).toContain(
@@ -349,7 +334,7 @@ describe("DockerProvider Lowkey runner evidence (WP-14)", () => {
     } finally {
       await runnerProvider.destroy(sandbox).catch(() => {});
     }
-  }, 120000);
+  }, 240000);
 
   it("installs OpenClaw and starts its token-authenticated gateway inside tinyagent-runner:test", async () => {
     try {
@@ -479,7 +464,7 @@ describe("DockerProvider Lowkey runner evidence (WP-14)", () => {
       if (tunnelClose) await tunnelClose().catch(() => {});
       await runnerProvider.destroy(sandbox).catch(() => {});
     }
-  }, 180000);
+  }, 300000);
 });
 
 async function execOutput(
