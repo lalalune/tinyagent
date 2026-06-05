@@ -27,18 +27,20 @@ function DashboardBody() {
       : agent.provider !== "lightning",
   );
   const resourceNoun = view === "lightning" ? "sandbox" : "agent";
+  const agentCount = (agents ?? []).filter((a) => a.provider !== "lightning").length;
+  const sandboxCount = (agents ?? []).filter((a) => a.provider === "lightning").length;
 
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            {view === "lightning" ? "Lightning sandboxes" : "Your agents"}
+            {view === "lightning" ? "Lightning sandboxes" : "Agent console"}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {agents
-              ? `${visibleResources.length} ${resourceNoun}${visibleResources.length === 1 ? "" : resourceNoun === "sandbox" ? "es" : "s"} · wallet-owned lifecycle`
-              : "Loading…"}
+              ? `${visibleResources.length} ${resourceNoun}${visibleResources.length === 1 ? "" : resourceNoun === "sandbox" ? "es" : "s"} ready for backup, teardown, or recovery`
+              : "Loading resources from the control-plane"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -51,7 +53,7 @@ function DashboardBody() {
               }`}
               onClick={() => setView("agents")}
             >
-              TinyAgent
+              Agents
             </button>
             <button
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
@@ -80,7 +82,19 @@ function DashboardBody() {
         </div>
       </div>
 
-      <div className="mt-8">
+      {agents && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <SummaryMetric label="Agents" value={agentCount} />
+          <SummaryMetric label="Sandboxes" value={sandboxCount} />
+          <SummaryMetric
+            label="Next action"
+            value={visibleResources.length === 0 ? "Deploy" : "Backup"}
+            text
+          />
+        </div>
+      )}
+
+      <div className="mt-6">
         {isLoading && <AgentListSkeleton />}
 
         {isError && (
@@ -142,14 +156,41 @@ function EmptyState({
         </h3>
         <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
           {isLightning
-            ? "Open a Lightning sandbox when you want raw, disposable compute with the same wallet-owned controls."
-            : "Deploy your first sovereign agent. Its memory is sealed to your wallet from the first boot — the compute is just a disposable shell."}
+            ? "Open a disposable sandbox when you need raw compute under the same backup and teardown controls."
+            : "Deploy an agent pack first. After it appears here, run a backup before tearing down compute."}
         </p>
       </div>
       <button className="btn-primary" onClick={onDeploy}>
         <PlusIcon />
         {isLightning ? "Open your first sandbox" : "Deploy your first agent"}
       </button>
+    </div>
+  );
+}
+
+function SummaryMetric({
+  label,
+  value,
+  text = false,
+}: {
+  label: string;
+  value: number | string;
+  text?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+        {label}
+      </p>
+      <p
+        className={
+          text
+            ? "mt-1 text-sm font-semibold text-slate-900"
+            : "mt-1 font-mono text-2xl font-semibold text-slate-900"
+        }
+      >
+        {value}
+      </p>
     </div>
   );
 }

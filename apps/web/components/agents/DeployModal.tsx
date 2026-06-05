@@ -98,6 +98,10 @@ export function DeployModal({
 
   const nameTaken = existingNames.includes(name.trim());
   const nameValid = NAME_RE.test(name.trim());
+  const suggestedName = nextAvailableName(
+    isLightning ? "workspace" : packName || "agent",
+    existingNames,
+  );
   const nameError =
     name.length === 0
       ? null
@@ -219,13 +223,21 @@ export function DeployModal({
 
         {/* Name */}
         <div>
-          <label className="label" htmlFor="agent-name">
-            {isLightning ? "Sandbox name" : "Agent name"}
-          </label>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <label className="label mb-0" htmlFor="agent-name">
+              {isLightning ? "Sandbox name" : "Agent name"}
+            </label>
+            <button
+              type="button"
+              className="text-xs font-medium text-blue-600 hover:text-blue-700"
+              onClick={() => setName(suggestedName)}
+            >
+              Use {suggestedName}
+            </button>
+          </div>
           <input
             id="agent-name"
             className="input font-mono"
-            placeholder={isLightning ? "e.g. workspace" : "e.g. scribe"}
             value={name}
             autoFocus
             onChange={(e) => setName(e.target.value.toLowerCase())}
@@ -273,8 +285,8 @@ export function DeployModal({
         </div>}
         {isLightning && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-            Lightning provider selected. Custom images and templates can plug
-            into this runtime slot without changing the lifecycle UI.
+            Lightning runs as an open sandbox. It still uses the same backup,
+            recover, and teardown controls as agent deployments.
           </div>
         )}
 
@@ -307,6 +319,22 @@ export function DeployModal({
       </div>
     </Modal>
   );
+}
+
+function nextAvailableName(base: string, existingNames: string[]) {
+  const normalized = base
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
+    .slice(0, 24);
+  const safeBase = /^[a-z]/.test(normalized) ? normalized : "agent";
+  if (!existingNames.includes(safeBase)) return safeBase;
+  for (let i = 2; i < 100; i += 1) {
+    const candidate = `${safeBase}-${i}`;
+    if (!existingNames.includes(candidate)) return candidate;
+  }
+  return `${safeBase}-${Date.now().toString(36).slice(-4)}`;
 }
 
 function PackNeeds({ pack }: { pack: PackRecord }) {

@@ -6,9 +6,12 @@ These images are rendered from actual TinyAgent CLI output after `bun run build`
 
 ![TinyAgent web landing page](screenshots/web-landing.png)
 
+![TinyAgent authenticated dashboard](screenshots/web-dashboard.png)
+
 ![TinyAgent dashboard without backend session](screenshots/web-dashboard-no-backend.png)
 
-The dashboard screenshot is the unauthenticated state. This standalone run did not include a live control-plane or wallet session.
+The authenticated dashboard is captured against the local E2E control-plane and
+Anvil wallet flow. The no-backend screenshot remains as the signed-out gate.
 
 ## CLI Surface
 

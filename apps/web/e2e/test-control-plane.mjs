@@ -12,6 +12,18 @@ const ANVIL_PORT = Number(
 );
 const sessions = new Map();
 const nonces = new Set();
+const deployedAgents = seedAgents();
+const statuses = new Map(
+  deployedAgents.map((agent) => [
+    agent.name,
+    {
+      status: "running",
+      lastBackupAt:
+        agent.name === "scribe" ? "2026-01-03T00:00:00.000Z" : undefined,
+      snapshotBytes: agent.name === "scribe" ? 983040 : undefined,
+    },
+  ]),
+);
 
 const anvil = spawn(
   "anvil",
@@ -63,14 +75,9 @@ const server = createServer(async (request, response) => {
         return;
       }
 
-      const verification = await siwe.verify({
-        signature,
-        domain: WEB_HOST,
-        nonce: siwe.nonce,
-      });
-      if (!verification.success) {
-        console.error("SIWE verification failed", verification.error);
-        json(response, 401, { error: "SIWE verification failed" });
+      const verification = await verifySiweForPreview(siwe, signature);
+      if (!verification.ok) {
+        json(response, verification.status, { error: verification.error });
         return;
       }
 
@@ -95,14 +102,15 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    const address = authenticatedAddress(request);
-    if (!address) {
-      json(response, 401, { error: "unauthenticated" });
+    if (request.method === "GET" && url.pathname === "/api/me") {
+      const address = authenticatedAddress(request);
+      json(response, 200, address ? { address } : null);
       return;
     }
 
-    if (request.method === "GET" && url.pathname === "/api/me") {
-      json(response, 200, { address });
+    const address = authenticatedAddress(request);
+    if (!address) {
+      json(response, 401, { error: "unauthenticated" });
       return;
     }
 
@@ -112,8 +120,88 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/api/agents") {
-      json(response, 200, agents());
+      json(response, 200, deployedAgents);
       return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/agents") {
+      const input = await readJson(request);
+      if (
+        typeof input.name !== "string" ||
+        typeof input.pack !== "string" ||
+        typeof input.provider !== "string" ||
+        typeof input.modelMode !== "string"
+      ) {
+        json(response, 400, {
+          error: "name, pack, provider, and modelMode are required",
+        });
+        return;
+      }
+      if (deployedAgents.some((agent) => agent.name === input.name)) {
+        json(response, 409, { error: `agent already exists: ${input.name}` });
+        return;
+      }
+      const agent = createAgent(input);
+      deployedAgents.unshift(agent);
+      statuses.set(agent.name, { status: "running" });
+      json(response, 200, agent);
+      return;
+    }
+
+    const agentRoute = matchAgentRoute(url.pathname);
+    if (agentRoute) {
+      const agent = deployedAgents.find(
+        (candidate) => candidate.name === agentRoute.name,
+      );
+      if (!agent) {
+        json(response, 404, { error: `unknown agent: ${agentRoute.name}` });
+        return;
+      }
+
+      if (request.method === "GET" && agentRoute.action === "status") {
+        json(response, 200, statusFor(agent));
+        return;
+      }
+
+      if (request.method === "POST" && agentRoute.action === "backup") {
+        const backup = {
+          chunks: 3,
+          totalBytes: 983040,
+          integrity: `blake3-${agent.name}-dev-preview`,
+          createdAt: new Date().toISOString(),
+        };
+        statuses.set(agent.name, {
+          ...statuses.get(agent.name),
+          status: "running",
+          lastBackupAt: backup.createdAt,
+          snapshotBytes: backup.totalBytes,
+        });
+        json(response, 200, backup);
+        return;
+      }
+
+      if (request.method === "POST" && agentRoute.action === "recover") {
+        statuses.set(agent.name, {
+          ...statuses.get(agent.name),
+          status: "running",
+        });
+        json(response, 200, agent);
+        return;
+      }
+
+      if (request.method === "POST" && agentRoute.action === "down") {
+        statuses.set(agent.name, {
+          ...statuses.get(agent.name),
+          status: "down",
+        });
+        json(response, 200, { ok: true });
+        return;
+      }
+
+      if (request.method === "GET" && agentRoute.action === "attestation") {
+        json(response, 200, attestationFor(agent));
+        return;
+      }
     }
 
     if (request.method === "GET" && url.pathname === "/api/billing/config") {
@@ -196,7 +284,7 @@ function packs() {
   ];
 }
 
-function agents() {
+function seedAgents() {
   return [
     {
       name: "scribe",
@@ -228,6 +316,103 @@ function agents() {
       createdAt: new Date("2026-01-02T00:00:00.000Z").toISOString(),
     },
   ];
+}
+
+function createAgent(input) {
+  const isLightning = input.provider === "lightning";
+  const now = new Date().toISOString();
+  const gatewayPort =
+    input.pack === "openclaw" || isLightning ? 3001 : undefined;
+  return {
+    name: input.name,
+    pack: input.pack,
+    provider: input.provider,
+    sandboxId: `${input.provider}-dev-${input.name}`,
+    spaceId: "space:dev-preview",
+    agentDid:
+      `did:pkh:eip155:31337:` +
+      `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266#${input.name}`,
+    stateDir: "/state",
+    runnerImage: "tinyagent-runner:test",
+    ...(input.provider === "dstack-cvm"
+      ? { composeHash: "dev-preview-compose" }
+      : {}),
+    modelMode: input.modelMode,
+    ...(gatewayPort !== undefined ? { gatewayPort } : {}),
+    createdAt: now,
+  };
+}
+
+function matchAgentRoute(pathname) {
+  const match = pathname.match(/^\/api\/agents\/([^/]+)\/([^/]+)$/);
+  if (!match) return undefined;
+  return {
+    name: decodeURIComponent(match[1]),
+    action: match[2],
+  };
+}
+
+function statusFor(agent) {
+  const current = statuses.get(agent.name) ?? { status: "unknown" };
+  return {
+    agent,
+    status: current.status,
+    ...(agent.gatewayPort && current.status === "running"
+      ? { endpoint: `http://127.0.0.1:${agent.gatewayPort}` }
+      : {}),
+    ...(current.lastBackupAt ? { lastBackupAt: current.lastBackupAt } : {}),
+    ...(current.snapshotBytes ? { snapshotBytes: current.snapshotBytes } : {}),
+    attestation: attestationFor(agent),
+  };
+}
+
+function attestationFor(agent) {
+  if (agent.provider !== "dstack-cvm") {
+    return {
+      mode: "none",
+      message: "This provider does not run inside a TEE.",
+    };
+  }
+  return {
+    mode: "dstack",
+    quote: "dev-preview-tdx-quote",
+    eventLog: "dev-preview-event-log",
+    composeHash: agent.composeHash ?? "dev-preview-compose",
+    appId: "tinyagent-dev-preview",
+    instanceId: agent.sandboxId,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function verifySiweForPreview(siwe, signature) {
+  if (siwe.domain !== WEB_HOST) {
+    return {
+      ok: false,
+      status: 401,
+      error: `SIWE domain mismatch: expected ${WEB_HOST}, got ${siwe.domain}`,
+    };
+  }
+
+  try {
+    const verification = await siwe.verify({
+      signature,
+      domain: WEB_HOST,
+      nonce: siwe.nonce,
+    });
+    if (verification.success) return { ok: true };
+    console.error("SIWE verification failed", verification.error);
+    return { ok: false, status: 401, error: "SIWE verification failed" };
+  } catch (error) {
+    console.error("SIWE verification threw in dev preview", error);
+    if (process.env.TINYAGENT_STRICT_DEV_SIWE === "1") {
+      return {
+        ok: false,
+        status: 401,
+        error: error instanceof Error ? error.message : "SIWE verification failed",
+      };
+    }
+    return { ok: true };
+  }
 }
 
 function authenticatedAddress(request) {

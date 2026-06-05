@@ -26,27 +26,25 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-20 pt-14 sm:px-6 sm:pt-24">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pt-16">
+        <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)]">
           <div className="animate-fade-in">
             <p className="eyebrow flex items-center gap-2.5">
               <span className="h-px w-7 bg-blue-600" />
-              Deploy · seal · recover
+              Wallet-owned compute
             </p>
-            <h1 className="display mt-5 text-5xl leading-[0.95] text-slate-900 sm:text-6xl">
-              Sovereign agents
-              <br />
-              you <span className="text-blue-600">actually own</span>
+            <h1 className="display mt-5 max-w-3xl text-5xl leading-[0.95] text-slate-900 sm:text-6xl">
+              TinyAgent
             </h1>
             <p className="mt-6 max-w-md text-pretty text-lg leading-relaxed text-slate-500">
-              Autonomous agents on disposable confidential compute. The box can
-              vanish — its memory lives in TinyCloud, sealed to your wallet.
+              Deploy an agent, snapshot its memory, release the compute, and
+              recover it later from the same wallet.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <WalletButton size="lg" />
               <Link href="/dashboard" className="btn-ghost px-5 py-3 text-base">
-                Open console <span aria-hidden>→</span>
+                View console
               </Link>
             </div>
 
@@ -82,10 +80,10 @@ function IdeaPanel() {
   return (
     <WindowChrome title="tinyagent · lifecycle" bodyClassName="p-6 shadow-glow" className="shadow-glow">
       <ol className="space-y-4">
-        <Step n={1} title="Deploy" body="A lowkey pack on local Docker or a dstack Intel-TDX CVM." />
-        <Step n={2} title="Seal" body="State snapshots to TinyCloud, encrypted to your wallet's key." />
-        <Step n={3} title="Dispose" body="Tear it down or switch providers — recover and it remembers." />
-        <Step n={4} title="Pay" body="Prepay an escrow at 20% over Phala cost. Withdraw the rest anytime." />
+        <Step n={1} title="Sign" body="A wallet signature creates the console session. No password account is created." />
+        <Step n={2} title="Deploy" body="Choose an agent pack or an open Lightning sandbox." />
+        <Step n={3} title="Snapshot" body="Backups move state into TinyCloud before compute is released." />
+        <Step n={4} title="Recover" body="Restore from the latest snapshot onto fresh compute." />
       </ol>
     </WindowChrome>
   );
@@ -111,18 +109,18 @@ function FeatureGrid() {
   const features = [
     {
       icon: <LockIcon />,
-      title: "Self-custodied memory",
-      body: "Encrypted in TinyCloud, content-addressed. Only your wallet can decrypt it.",
+      title: "Memory belongs to the wallet",
+      body: "Agent state is addressed to the wallet session instead of a hosted account.",
     },
     {
       icon: <ShieldIcon />,
-      title: "Hardware attestation",
-      body: "Every dstack CVM ships a TDX quote you can verify. Trust the math, not us.",
+      title: "TEE when the provider supports it",
+      body: "dstack deployments expose attestation data; local and Lightning resources say when they do not.",
     },
     {
       icon: <CoinsIcon />,
-      title: "Crypto-metered compute",
-      body: "An on-chain escrow holds your balance. We debit metered usage — never more.",
+      title: "Compute is disposable",
+      body: "The dashboard treats backup, teardown, and recovery as first-class operations.",
     },
   ];
   return (

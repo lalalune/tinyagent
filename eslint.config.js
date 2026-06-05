@@ -14,6 +14,16 @@ export default tseslint.config(
     ],
   },
   {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        setTimeout: "readonly",
+      },
+    },
+  },
+  {
     files: ["**/*.ts"],
     languageOptions: {
       parserOptions: {

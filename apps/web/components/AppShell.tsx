@@ -53,12 +53,17 @@ function AuthGate({
     <div className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center text-center">
       <Logo withWordmark={false} className="scale-150" />
       <h1 className="mt-6 text-2xl font-semibold text-slate-900">
-        Sign in to your console
+        Sign in with your wallet
       </h1>
       <p className="mt-2 text-sm text-slate-500">
-        Connect your wallet and sign a message to prove ownership. Your agents&apos;
-        memory is sealed to this address — no password, no account.
+        TinyAgent uses a signed message to open the console and scope every
+        deployment, backup, and recovery operation to one address.
       </p>
+      <div className="mt-5 grid w-full gap-2 text-left text-xs text-slate-500">
+        <GateStep n={1} text="Connect the wallet that owns the agents." />
+        <GateStep n={2} text="Sign once to create the control-plane session." />
+        <GateStep n={3} text="Manage deployments from the dashboard." />
+      </div>
       <div className="mt-6">
         <WalletButton size="lg" />
       </div>
@@ -78,6 +83,17 @@ function AuthGate({
       >
         ← Back to home
       </Link>
+    </div>
+  );
+}
+
+function GateStep({ n, text }: { n: number; text: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-50 font-mono text-[11px] font-semibold text-blue-600">
+        {n}
+      </span>
+      <span>{text}</span>
     </div>
   );
 }

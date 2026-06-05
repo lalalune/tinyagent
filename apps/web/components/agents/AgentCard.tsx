@@ -170,7 +170,13 @@ export function AgentCard({ agent }: { agent: DeployedAgent }) {
         />
         <Detail
           label="Endpoint"
-          value={status?.endpoint ? "available" : agent.gatewayPort ? `:${agent.gatewayPort}` : "—"}
+          value={
+            status?.endpoint
+              ? "available"
+              : agent.gatewayPort
+                ? `port ${agent.gatewayPort}`
+                : "not exposed"
+          }
         />
       </dl>
 

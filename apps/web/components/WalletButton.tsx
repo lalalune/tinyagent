@@ -6,11 +6,10 @@ import { cx, shortAddress } from "@/lib/utils";
 import { useMounted } from "@/lib/useMounted";
 
 /**
- * Wallet + SIWE control. Renders:
- *  - "Connect Wallet" when no wallet is connected,
- *  - a "Wrong network" pill if on an unsupported chain,
- *  - "Sign in" (SIWE) when connected but no server session,
- *  - the account chip + chain switcher once authenticated.
+ * Wallet + SIWE control. The primary flow is intentionally simple:
+ * connect a wallet, sign the SIWE message, then show the signed-in address.
+ * Chain switching stays available through RainbowKit account details instead
+ * of competing with the console's main actions.
  */
 export function WalletButton({ size = "md" }: { size?: "md" | "lg" }) {
   const { status, signIn } = useSession();
@@ -30,14 +29,7 @@ export function WalletButton({ size = "md" }: { size?: "md" | "lg" }) {
 
   return (
     <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-        mounted,
-      }) => {
+      {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
         const ready = mounted;
         const connected = ready && account && chain;
 
@@ -67,57 +59,40 @@ export function WalletButton({ size = "md" }: { size?: "md" | "lg" }) {
 
         if (chain.unsupported) {
           return (
-            <button onClick={openChainModal} className="btn-danger">
-              Wrong network
+            <button onClick={openAccountModal} className="btn-danger">
+              Switch network
             </button>
           );
         }
 
         if (status !== "authenticated") {
           return (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={openChainModal}
-                className="btn-ghost btn-sm hidden sm:inline-flex"
-                title="Switch network"
-              >
-                {chain.name}
-              </button>
-              <button
-                onClick={signIn}
-                disabled={status === "signing-in"}
-                className={cx("btn-primary", big && "px-6 py-3 text-base")}
-              >
-                {status === "signing-in" ? (
-                  <>
-                    <Spinner />
-                    Check wallet…
-                  </>
-                ) : (
-                  <>
-                    <ShieldIcon />
-                    Sign in
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={signIn}
+              disabled={status === "signing-in"}
+              className={cx("btn-primary", big && "px-6 py-3 text-base")}
+            >
+              {status === "signing-in" ? (
+                <>
+                  <Spinner />
+                  Check wallet…
+                </>
+              ) : (
+                <>
+                  <ShieldIcon />
+                  Sign in
+                </>
+              )}
+            </button>
           );
         }
 
         return (
           <div className="flex items-center gap-2">
             <button
-              onClick={openChainModal}
-              className="btn-ghost btn-sm hidden items-center gap-1.5 sm:inline-flex"
-              title="Switch network"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-              {chain.name}
-            </button>
-            <button
               onClick={openAccountModal}
               className="btn-ghost"
-              title="Account"
+              title="Wallet account"
             >
               <span className="font-mono text-xs">
                 {shortAddress(account.address)}

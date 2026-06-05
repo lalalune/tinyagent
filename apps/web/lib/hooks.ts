@@ -84,7 +84,8 @@ export function useDownAgent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => api.down(name),
-    onSuccess: () => {
+    onSuccess: (_data, name) => {
+      qc.invalidateQueries({ queryKey: qk.status(name) });
       qc.invalidateQueries({ queryKey: qk.agents });
     },
   });

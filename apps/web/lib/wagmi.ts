@@ -55,9 +55,25 @@ function anvilEip1193Provider() {
   return {
     on: () => {},
     removeListener: () => {},
-    request: async ({ method, params = [] }: { method: string; params?: unknown[] }) => {
-      if (method === "eth_requestAccounts" || method === "eth_accounts") return [E2E_ACCOUNT];
-      if (method === "wallet_switchEthereumChain" || method === "wallet_addEthereumChain") return null;
+    request: async ({
+      method,
+      params = [],
+    }: {
+      method: string;
+      params?: unknown[];
+    }) => {
+      if (method === "eth_requestAccounts" || method === "eth_accounts")
+        return [E2E_ACCOUNT];
+      if (
+        method === "wallet_requestPermissions" ||
+        method === "wallet_getPermissions"
+      )
+        return [{ parentCapability: "eth_accounts" }];
+      if (
+        method === "wallet_switchEthereumChain" ||
+        method === "wallet_addEthereumChain"
+      )
+        return null;
       return rpc(method, params);
     },
   };

@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun scripts/dev.mjs",
     "build": "bun run build:packages && bun run build:cli",
     "build:packages": "tsc -b --force packages/core packages/provider-core packages/tc packages/crypto packages/backup packages/provider-docker packages/provider-dstack packages/attest packages/packrunner packages/backupd packages/cli",
     "build:cli": "mkdir -p dist && bun build packages/cli/src/index.ts --compile --external cpu-features --outfile dist/tinyagent",
