@@ -106,7 +106,7 @@ describe("committed runner image artifacts", () => {
 
   it("keeps reproducible runner-image CI wired to publish measurements", async () => {
     const workflow = await readFile(
-      join(process.cwd(), "..", ".github", "workflows", "tinyagent-runner.yml"),
+      join(process.cwd(), ".github", "workflows", "tinyagent-runner.yml"),
       "utf8",
     );
 

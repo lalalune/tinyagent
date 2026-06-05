@@ -1,0 +1,81 @@
+name: TinyAgent Runner Reproducibility
+
+on:
+  pull_request:
+    paths:
+      - "runner/**"
+      - "packages/attest/src/compose.ts"
+      - "packages/attest/src/runner.test.ts"
+      - "vendor/lowkey/TINYAGENT_VENDOR.json"
+      - "bun.lock"
+      - ".github/workflows/tinyagent-runner.yml"
+  push:
+    branches: [main]
+    paths:
+      - "runner/**"
+      - "packages/attest/src/compose.ts"
+      - "packages/attest/src/runner.test.ts"
+      - "vendor/lowkey/TINYAGENT_VENDOR.json"
+      - "bun.lock"
+      - ".github/workflows/tinyagent-runner.yml"
+  workflow_dispatch:
+
+jobs:
+  runner-measurements:
+    name: Build Runner And Publish Measurements
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify app-compose hash
+        run: |
+          expected="$(cat runner/app-compose.sha256)"
+          actual="sha256:$(sha256sum runner/app-compose.json | awk '{print $1}')"
+          test "$actual" = "$expected"
+          printf '%s\n' "$actual" > runner-measurements.compose.sha256
+
+      - name: Build runner image
+        run: |
+          docker build \
+            --progress=plain \
+            --iidfile runner-measurements.image-id.txt \
+            -f runner/Dockerfile \
+            -t tinyagent-runner:ci \
+            .
+
+      - name: Inspect runner image
+        run: |
+          docker image inspect tinyagent-runner:ci > runner-measurements.image-inspect.json
+          docker run --rm --entrypoint /bin/sh tinyagent-runner:ci -lc \
+            'bun --version; test -x /opt/lowkey/packs/openclaw/install.sh; test -f /opt/lowkey/deploy/brain/AGENTS.md; test -x /usr/local/bin/tinyagent-runner' \
+            > runner-measurements.runtime.txt
+
+      - name: Write measurement summary
+        run: |
+          jq -n \
+            --arg composeHash "$(cat runner-measurements.compose.sha256)" \
+            --arg imageId "$(cat runner-measurements.image-id.txt)" \
+            --arg lowkeyRef "$(jq -r .ref vendor/lowkey/TINYAGENT_VENDOR.json)" \
+            --arg dockerfileSha "sha256:$(sha256sum runner/Dockerfile | awk '{print $1}')" \
+            --arg appComposeSha "$(cat runner-measurements.compose.sha256)" \
+            '{
+              runner: "tinyagent-openclaw",
+              composeHash: $composeHash,
+              imageId: $imageId,
+              lowkeyRef: $lowkeyRef,
+              dockerfileSha256: $dockerfileSha,
+              appComposeSha256: $appComposeSha
+            }' > runner-measurements.json
+
+      - name: Upload runner measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinyagent-runner-measurements
+          path: |
+            runner-measurements.json
+            runner-measurements.compose.sha256
+            runner-measurements.image-id.txt
+            runner-measurements.image-inspect.json
+            runner-measurements.runtime.txt
