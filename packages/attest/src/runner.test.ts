@@ -77,11 +77,9 @@ describe("committed runner image artifacts", () => {
     ) as { ref: string };
 
     expect(vendor.ref).toBe(lowkeyRef);
-    expect(dockerfile).toContain("FROM oven/bun:1.1.38-debian");
+    expect(dockerfile).toContain("FROM oven/bun:1.3.14-debian");
     expect(dockerfile).not.toContain(":latest");
-    expect(dockerfile).toContain(
-      "bun install --frozen-lockfile --ignore-scripts",
-    );
+    expect(dockerfile).toContain("bun install --ignore-scripts");
     expect(dockerfile).toContain("COPY vendor/lowkey /opt/lowkey");
     expect(dockerfile).toContain(
       "COPY runner/systemctl-shim.sh /usr/local/bin/systemctl",

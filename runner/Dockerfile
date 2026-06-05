@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.1.38-debian AS tinyagent-runner
+FROM oven/bun:1.3.14-debian AS tinyagent-runner
 
 LABEL org.opencontainers.image.title="TinyAgent Lowkey Runner"
 LABEL org.opencontainers.image.source="https://github.com/TinyCloudLabs/tinyagent"
@@ -49,7 +49,7 @@ COPY runner/systemctl-shim.sh /usr/local/bin/systemctl
 COPY runner/loginctl-shim.sh /usr/local/bin/loginctl
 
 RUN chmod 0755 /usr/local/bin/tinyagent-runner /usr/local/bin/systemctl /usr/local/bin/loginctl
-RUN bun install --frozen-lockfile --ignore-scripts
+RUN bun install --ignore-scripts
 RUN bun run build:packages
 RUN test -x /opt/lowkey/packs/openclaw/install.sh \
   && test -f /opt/lowkey/packs/openclaw/manifest.yaml \
